@@ -383,12 +383,24 @@ def ask_with_dialogs() -> list[str] | None:
     root.withdraw()
     root.attributes("-topmost", True)
     try:
-        stl = filedialog.askopenfilename(
-            title="Choose an STL file to convert",
-            filetypes=[("STL files", "*.stl"), ("All files", "*.*")],
-        )
-        if not stl:
-            return None
+        while True:
+            stl = filedialog.askopenfilename(
+                title="Choose an STL file to convert",
+                filetypes=[("STL files", "*.stl")],
+            )
+            if not stl:
+                return None
+            try:
+                load_stl(Path(stl))
+                break
+            except (ValueError, OSError) as e:
+                messagebox.showerror(
+                    "Not an STL file",
+                    f"{Path(stl).name} isn't an STL file this tool can read.\n\n"
+                    f"Export your model from your CAD program as .stl and "
+                    f"pick that file.\n\n({e})",
+                    parent=root,
+                )
         size = simpledialog.askinteger(
             "Size", "Length of the longest side, in blocks:",
             initialvalue=64, minvalue=1, maxvalue=2000, parent=root,
@@ -436,7 +448,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.size is None and args.scale is None:
         args.size = 64
 
-    tris = load_stl(args.input)
+    try:
+        tris = load_stl(args.input)
+    except (ValueError, OSError) as e:
+        print(f"Error: couldn't read {args.input}: {e}", file=sys.stderr)
+        print("Pick a .stl file exported from your CAD program.", file=sys.stderr)
+        return 1
     print(f"Loaded {len(tris):,} triangles from {args.input}")
 
     tris = to_minecraft_axes(tris, args.up)
