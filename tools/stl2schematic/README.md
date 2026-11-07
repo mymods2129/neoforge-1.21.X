@@ -13,6 +13,12 @@ pip install numpy
 
 ## Usage
 
+**Easiest:** just run the script with no arguments (double-click it, or press Run in
+VS Code). It opens a file picker and asks for the size, hollow/solid, the block, and where
+to save.
+
+**Command line:**
+
 ```
 python stl2schematic.py my_plane.stl --size 80
 ```

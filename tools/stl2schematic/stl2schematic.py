@@ -373,7 +373,65 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def ask_with_dialogs() -> list[str] | None:
+    """Started with no arguments (e.g. the Run button or a double-click):
+    ask for the file and main options with simple dialogs instead."""
+    import tkinter as tk
+    from tkinter import filedialog, messagebox, simpledialog
+
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    try:
+        stl = filedialog.askopenfilename(
+            title="Choose an STL file to convert",
+            filetypes=[("STL files", "*.stl"), ("All files", "*.*")],
+        )
+        if not stl:
+            return None
+        size = simpledialog.askinteger(
+            "Size", "Length of the longest side, in blocks:",
+            initialvalue=64, minvalue=1, maxvalue=2000, parent=root,
+        )
+        if size is None:
+            return None
+        hollow = messagebox.askyesno(
+            "Hollow?",
+            "Build only the outer shell (hollow)?\n\n"
+            "Yes = fewer blocks, smaller file (recommended for planes)\n"
+            "No = completely solid",
+            parent=root,
+        )
+        block = simpledialog.askstring(
+            "Block", "Block to build with:",
+            initialvalue="minecraft:white_concrete", parent=root,
+        )
+        if not block:
+            return None
+        out = filedialog.asksaveasfilename(
+            title="Save schematic as",
+            initialfile=Path(stl).with_suffix(".nbt").name,
+            initialdir=str(Path(stl).parent),
+            defaultextension=".nbt",
+            filetypes=[("Schematic", "*.nbt")],
+        )
+        if not out:
+            return None
+    finally:
+        root.destroy()
+
+    argv = [stl, "-o", out, "--size", str(size), "--block", block]
+    if hollow:
+        argv.append("--hollow")
+    return argv
+
+
 def main(argv: list[str] | None = None) -> int:
+    if argv is None and len(sys.argv) == 1:
+        argv = ask_with_dialogs()
+        if argv is None:
+            print("Cancelled.")
+            return 0
     args = build_parser().parse_args(argv)
     if args.size is None and args.scale is None:
         args.size = 64
